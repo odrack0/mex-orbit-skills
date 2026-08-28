@@ -1,6 +1,6 @@
 ---
 name: mexorbit-asset-3d
-description: Pipeline de un asset 3D de MexOrbit, de Meshy al juego, en las tres calidades (alta = malla en SubViewport, media y baja = PNG horneados del MISMO modelo). Invocar antes de montar cualquier bicho o nave nueva desde un modelo 3D, y antes de tocar normalize-model.py, riguear-modelo.py, hornear-sprite.py o el camino 3D de entity_node.gd.
+description: Pipeline de un asset 3D de MexOrbit, de Meshy al juego, en las tres calidades (alta = malla en SubViewport, media y baja = PNG horneados del MISMO modelo). Invocar antes de montar desde un modelo 3D cualquier bicho, nave o PROP del mapa (estacion, portal, caja), y antes de tocar normalize-model.py, riguear-modelo.py, hornear-sprite.py, el camino 3D de entity_node.gd o el de la estacion en world.gd. Cubre tambien la emision por canal, los rig radiales y por que un prop no se tumba como un bicho.
 ---
 
 # Skill: montar un asset 3D de MexOrbit
@@ -223,6 +223,46 @@ que es el filo de la campana y no su garganta, así que la llama arrancaba despe
   viejo. Ojo al orden: en `setup()` el bucle de `cannons` corre **después** de
   `_construir_visual`, así que sin condición se **suman** a las medidas.
 
+## Si es una ESTACIÓN (o cualquier prop que no sea un bicho)
+
+Un bicho es un objeto **plano visto desde arriba**, hay muchos a la vez y vive en `EntityNode`. Una
+estación rompe las tres cosas, y cada una cambia un dial de la cadena.
+
+**No se tumba.** `TUMBAR=0`. El contrato del normalizador —el eje fino acaba en el alto— *codifica*
+«plano visto desde arriba». Una estación es una **torre vertical**: tumbarla la acuesta. No hay
+heurística que distinga los dos casos mirando la caja, porque la diferencia no está en el modelo sino
+en cómo se mira.
+
+**No se decima.** Es UNA instancia, no quince Vex. La base entró con 30 228 tris y se quedó con ellos.
+
+**Puede tener DOS colores de acento.** El canal admite una suma: `c+m` toma el **máximo** de las dos
+máscaras (no la suma: un píxel es del acento que más domine). Y ojo con elegir el canal por cobertura
+— en la estación el azul dominaba en el **92,2 %** de la textura porque el casco entero es azul-gris,
+así que habría encendido la torre entera. Los acentos reales eran magenta (p99 0,298) y cian (0,153).
+
+**La cámara puede no ser cenital, y eso arrastra el encuadre.** `extension_3d` mide la **huella**
+(X y Z), que a 90° es exactamente lo que se ve. En cuanto la cámara baja deja de serlo: la altura pasa
+a proyectarse en pantalla y una torre de 1,92 sobre una planta de 1,05 se sale por arriba. Para
+cámaras oblicuas, `extension_vista` proyecta las ocho esquinas de la caja al espacio de la cámara.
+
+**El tamaño tiene techos que no son el gusto.** En la estación fueron dos: su **zona segura** (el
+server manda 1500 de radio, así que a ×4 la base asomaría fuera de su propio anillo y se lee como un
+error) y el **destino de render, que crece con el cuadrado** — a ×3 son 2829 px de lado y 30,5 MB.
+
+## Un prop con TRES caminos: los guardianes por exclusión caducan
+
+La estación tiene PNG fijo, atlas y malla 3D. Su capa emisiva 2D —el reactor de una base anterior—
+se montaba con un guardián que decía «solo si **no** hay atlas». Al aparecer el tercer camino, nadie
+lo actualizó: volvió a montarse sobre el modelo, en blend aditivo, y pintó un aro cian perfecto sobre
+una estructura que no tiene esa forma.
+
+Y engaña dos veces. Se lee como «el reactor brilla demasiado», así que se toca el *glow* y la
+ganancia de emisión —los dos sospechosos razonables— mientras la causa es **una capa que no debería
+estar ahí**. Ese aro ya se había arreglado una vez, con el mismo síntoma.
+
+**Enuncia el guardián por lo que la cosa PERTENECE, no por lo que no es.** «La capa emisiva 2D es del
+PNG fijo» no caduca; «de todo lo que no sea atlas» caduca en cuanto aparece un caso nuevo.
+
 ## Fuentes de verdad
 
 - `mex-orbit-art/README.md` — la receta de Meshy, los dos diales (polígonos vs
@@ -264,6 +304,16 @@ Todo dial calibrable se documenta en el README de su repo **en el mismo commit**
   segundos, y es lo único que mira el resultado en vez de lo que el script dice que
   hizo.
 
+**Los diales NO cruzan de medio**
+- Un valor calibrado sobre un **sprite aditivo** no vale sobre la **emisión de un
+  material**, aunque se llame igual. El latido de la estación (0,55–1,8) funcionaba
+  en 2D porque un blend aditivo satura de por sí; sobre una emisión cuya textura
+  promedia **0,143 sobre 1**, ese mismo recorrido da de 0,079 a 0,257: se mueve y
+  no se ve. Multiplicar poco por poco sigue siendo poco.
+- Antes de reutilizar un dial, mira **qué tan brillante es lo que multiplica**.
+  Medir el promedio y el máximo de la textura emisiva contesta en un minuto lo que
+  si no se convierte en varias rondas de "súbelo un poco más".
+
 **GDScript**
 - **No hay comprensiones de lista.** `[f(i) for i in n]` está escrito como en
   Python y aquí es un error de **parseo**, igual que la asignación múltiple: tumba
@@ -282,6 +332,15 @@ Todo dial calibrable se documenta en el README de su repo **en el mismo commit**
 - `set_bone_pose_rotation` fija la pose **entera**, no un incremento. Hay que
   componer sobre el reposo: `get_bone_rest(i).basis.get_rotation_quaternion() * giro`.
   Sin eso la malla sale aplastada sin haber rotado.
+
+**Cómo NO medir**
+- **Contar píxeles sobre la PANTALLA ENTERA no es comparable entre corridas del
+  autotest.** La nave se mueve, así que el asset entra o sale del encuadre y el
+  recuento cambia por eso. Una lectura que "bajaba un 94%" resultó ser una captura
+  donde la estación casi no salía. **Recorta el asset primero** — localizarlo por
+  su color de acento funciona bien.
+- La cifra puede ser real y la conclusión falsa. Antes de creerte una caída, mira
+  la imagen de la que salió.
 
 **Cliente**
 - **El cliente mapeaba una LISTA FIJA de nombres de hueso.** `_mapear_huesos`
@@ -446,7 +505,17 @@ quieta, igual que ya hace con alas y cola.
    anterior. Nunca escondas la salida de un paso que estás calibrando.
 8. **Un log limpio no es una prueba** si no confirmaste que la ejecución llegó al
    sitio del fallo. Ver la sección del autotest.
-9. **Compara contra el horneado, no contra el banco.** El banco tiene sus propios
+9. **Ante algo que sobra en la imagen, pregunta DE DÓNDE SALE antes de cómo
+   quitarlo.** El aro cian de la estación se atacó como "brilla demasiado" —bajando
+   glow y emisión, los dos sospechosos razonables— y era una capa de otra estación
+   montada encima. La pregunta "¿cómo lo atenúo?" da por supuesto que la cosa
+   pertenece ahí. La pregunta "¿de dónde sale?" lo comprueba.
+10. **Si una capacidad deja de gustar, quítala ENTERA**: shader, constructor,
+   campos, ficha y documentación. No la dejes apagada desde el JSON. Código que no
+   se ejecuta no avisa de que está ahí, y en esta cadena ya ha mordido dos veces —
+   los huesos de ala en un gusano y la capa emisiva de una estación anterior. El
+   "por si acaso" vive mejor en el historial de git que en el árbol de trabajo.
+11. **Compara contra el horneado, no contra el banco.** El banco tiene sus propios
    valores y no es la referencia de aspecto.
 
 ## Si algo falla DESPUÉS del login, usa el autotest
