@@ -39,6 +39,15 @@ Pedirlo por primario **no da error**: da un modelo que no brilla, y eso solo se
 descubre mirándolo en el juego. Antes de elegir canal, mira de qué color es lo que
 tiene que encenderse.
 
+**La GANANCIA es la palanca del COLOR, y arrastra al horno.** Si el bicho pide
+más intensidad de la que el albedo da (la lava del Skarnox: grietas a 0,4 que ni
+el pulso ni el glow levantaban a «naranja intenso»), la palanca es la ganancia
+del normalizador (el Skarnox va a **2,0**) — no subir el pulso a lo loco ni
+inventar diales aguas abajo. Y doblar la fuente **descalibra el halo horneado**:
+la fuerza del Skarnox tuvo que bajar de 4,2 a 2,0 para que media volviera a
+homologar. El halo pertenece a la pareja modelo+emisiva, como `HORNO_AMBIENTE`
+pertenece a la pareja modelo+textura.
+
 **Y la cifra de cobertura sola no dice nada, en NINGUNA dirección.** La trampa de
 la estación es cobertura alta que sí era veneno (el azul dominaba el 92 % porque
 el casco entero es azul-gris). El Ferox fue lo contrario: «80,6 % de la textura
@@ -125,7 +134,13 @@ sin eso Godot sirve la textura vieja de la caché y parece que el cambio no hizo
 ```
 
 Y ya está: `entity_node._construir_visual()` toma el camino 3D cuando
-`Quality.nivel("npc") >= 2`. **No se toca `world.gd`** — el 3D entra por debajo, en
+`Quality.nivel("npc") >= 2`. Si el bicho pide **emisión que VIAJA** (lava, energía
+recorriendo vetas), existe el dial `lava` en el JSON: monta
+`game/shaders/lava_flujo.gdshader` como `next_pass` aditivo sobre la copia del
+material — el ruido corre sobre la **posición local** (los islotes de UV de Meshy
+partirían el flujo) y late en fase con el pulso, que no se toca. El destello 3D
+va al reloj de las **alas**: un bicho sin alas hereda el ciclo del Vexor (2,17 s)
+salvo que su JSON declare `"alas": {"ciclo": N}` — solo el reloj, sin huesos. **No se toca `world.gd`** — el 3D entra por debajo, en
 un `SubViewport` cuya textura alimenta al `Sprite2D` de siempre, así que posición,
 z-index, radio de click, barras y FX siguen siendo los de 2D.
 
@@ -450,6 +465,18 @@ el número no diría nada del bicho.
 Se **reporta y no falla** todavía, porque el umbral bueno para las nueve especies
 no está medido — un 0,034 puede ser legítimo. Lo que no puede volver a pasar es
 que un bicho se quede congelado y nadie se entere.
+
+**El bestiario corre en la calidad que la sesión traiga guardada — para verificar
+el camino 3D, SIEMPRE `-Calidad alta`.** Sin el flag puede estar retratando
+MEDIA, y media se parece a alta *a propósito* (para eso se homologa), así que el
+ojo no lo delata: se pasaron tres corridas «verificando» un shader de alta que
+ninguna captura había ejecutado. Las señales que sí delatan: las capturas de alta
+llevan sufijo `-alta` en el nombre, y las cifras de MOVIMIENTO cambian en bloque
+entre calidades — cifras idénticas al milésimo entre dos corridas con un asset
+cambiado significan que retrataron el mismo camino, no que el cambio no hizo
+nada. Y las cifras de MOVIMIENTO **no son comparables entre corridas de calidad
+distinta**; para un antes/después fiable, mide la diferencia tú mismo sobre el
+par de capturas frescas (comprueba su mtime), recortando la caja del bicho.
 
 ## Añadir una parte móvil nueva (cuernos, tentáculos)
 
