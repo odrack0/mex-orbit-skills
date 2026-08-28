@@ -39,6 +39,17 @@ Pedirlo por primario **no da error**: da un modelo que no brilla, y eso solo se
 descubre mirándolo en el juego. Antes de elegir canal, mira de qué color es lo que
 tiene que encenderse.
 
+**Y la cifra de cobertura sola no dice nada, en NINGUNA dirección.** La trampa de
+la estación es cobertura alta que sí era veneno (el azul dominaba el 92 % porque
+el casco entero es azul-gris). El Ferox fue lo contrario: «80,6 % de la textura
+emite» con canal `r` huele a esa trampa, pero medida la **distribución** era
+benigna — el marfil del cuerpo es apenas r-dominante (máscara ~0,04, emisiva
+resultante ~0,02) y los acentos reales, ojos y vetas con albedo 0,72/0,19/0,21,
+son el 5,4 % por encima de 0,35 con p99 de 0,62. Ni el pánico ni la confianza se
+sacan del porcentaje: antes de cambiar canal o ganancia, mide p50/p99 de la
+máscara y el albedo de donde pega alto contra donde pega bajo. Un minuto de
+numpy ahorra un rehorneado a ciegas.
+
 **3. Master → asset de juego con esqueleto:**
 
 ```bash
@@ -87,6 +98,13 @@ py mex-orbit-testing/assets/validar-modelo.py <cliente>/assets/npcs/<bicho>.glb
 
 Comprueba piezas, triángulos, texturas, caja, pivote, emisión, desbalance de luz
 cocida y **esqueleto**. La caja tiene que salir plana (el eje fino es el alto).
+
+**Rechazo conocido que NO es del asset**: el tope de textura del validador (512)
+está desfasado de la receta, que saca el master a 1024 — el Vex y el Vexor, en
+producción y correctos, dan el mismo `RECHAZAR ... el tope es 512` con exit 1.
+Hasta que se alinee el contrato, ese rechazo se ignora; lo que NO se hace es
+«arreglar» el asset bajándolo a 512, que es la reacción natural al mensaje. El
+resto de rechazos sí mandan.
 
 **5. Hornear media y baja** — los tres PNG que el cliente ya consume:
 
@@ -378,7 +396,12 @@ Todo dial calibrable se documenta en el README de su repo **en el mismo commit**
 
 ## Cómo se verifica
 
-En `mex-orbit-client/pruebas/` hay tres escenas que son herramientas, no adornos:
+En `mex-orbit-client/pruebas/` hay tres escenas que son herramientas, no adornos.
+**Se corren CON VENTANA, nunca con `--headless`**: headless monta el renderer
+dummy, que no puede volcar texturas — la escena arranca, lista los huesos como si
+todo fuera bien y luego escupe `Parameter "t" is null` y `save_png on a null
+value` en bucle, sin salir nunca. El `--headless` vale para `--import`, no para
+renderizar. Todas estas escenas abren su ventana un momento y salen solas.
 
 | escena | para qué |
 |---|---|
