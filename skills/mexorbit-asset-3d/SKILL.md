@@ -285,6 +285,16 @@ así que habría encendido la torre entera. Los acentos reales eran magenta (p99
 a proyectarse en pantalla y una torre de 1,92 sobre una planta de 1,05 se sale por arriba. Para
 cámaras oblicuas, `extension_vista` proyecta las ocho esquinas de la caja al espacio de la cámara.
 
+**Y su MEDIA se hornea con el rig del cliente, no con el de los bichos.** El horno
+tiene los diales: `HORNO_ELEVACION=30` (cámara oblicua, encuadre de ocho esquinas)
+y `HORNO_LUZ=mundo` — un prop que NO ROTA no necesita la luz axial, y lo correcto
+es el sol direccional real o media no comparte sombras con alta. El halo se apaga
+si alta lo tiene apagado (`GLOW_FUERZA=0`) y `GLOW_NUCLEO` hace de ganancia para
+cocer el `emision` del modelo en la capa, porque el pulso 2D no lo multiplica.
+Su ambiente bajó a **0,15**: el casco es metálico por textura y en Blender el
+fondo se refleja — la homologación se midió EN EL JUEGO, recortando la estación
+de dos autotest (media contra alta), porque `medir_emision` es de bichos.
+
 **El tamaño tiene techos que no son el gusto.** En la estación fueron dos: su **zona segura** (el
 server manda 1500 de radio, así que a ×4 la base asomaría fuera de su propio anillo y se lee como un
 error) y el **destino de render, que crece con el cuadrado** — a ×3 son 2829 px de lado y 30,5 MB.
