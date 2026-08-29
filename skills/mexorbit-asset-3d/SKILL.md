@@ -157,7 +157,7 @@ revés que el Vexor) y emite en un solo ojo en vez de en toda la superficie.
 | `COLA_DESDE` | 0,32 | 0,24 |
 | `GLOW_NUCLEO` | 0,09 | 0,22 |
 | `GLOW_RADIO` / `GLOW_FUERZA` | 0,06 / 1,8 | 0,09 / 3,8 |
-| `HORNO_AMBIENTE` | 0,28 | 0,28 (la Phoenix, **1,7**) |
+| `HORNO_SOL` / `HORNO_AMBIENTE` | 1,35 / 0,65 | 1,0 / 0,45 (la Phoenix, **1,6 / 0,35**) |
 | `cuernos_grados` / `cuernos_eje` | [−14, +14] / eje 1 | [−20, 0] / **eje 2** |
 
 **Las bisagras salen del perfil de la malla**, no de copiar el bicho anterior: saca
@@ -169,15 +169,22 @@ alta. Cuál es la palanca depende del bicho: en el Vexor era el núcleo; en el V
 que emite en un punto, subirlo de 0,09 a 0,22 solo movió la media de 0,201 a 0,205
 y hubo que ir al halo.
 
-**La luz del horno también es un dial.** `HORNO_SOL` (3,2) y `HORNO_AMBIENTE`
-(0,28) valen para un bicho de albedo oscuro con vetas emisivas. Para una nave
-**metálica** no: un metal casi no tiene difuso, solo devuelve lo que hay alrededor,
-y sin entorno que reflejar se apaga — el Phoenix salía casi negro al lado de su
-propio render de alta. Con la textura gris de la Phoenix, `HORNO_AMBIENTE=1.7` deja media en
-0,224 contra 0,226 de alta. **Recalibra el dial cada vez que cambie la textura**:
-no pertenece al modelo, pertenece a la pareja modelo+textura — con la textura
-oscura anterior el valor era 1,2 y la referencia de alta, 0,139. **Y el resultado sigue siendo una nave oscura, porque alta también la
-dibuja oscura**: homologar es parecerse al modelo, no al PNG 2D que hubiera antes.
+**La luz del horno ESPEJA la del cliente desde el cambio de luz del mundo
+(ago-2026).** El mundo 3D pasó de ambiente 0,28 lineal a **0,65 con tonemap
+FILMIC**, en UN dial: `AssetDefs.ambiente_mundo` — antes estaba copiado a mano en
+ocho sitios y subirlo exigía acertar ocho ediciones. El horno lo replica: fondo
+del color del ambiente (antes el nodo Background se quedaba en el gris 0,05 por
+defecto de Blender y la fuerza multiplicaba casi-nada — los valores de la era
+vieja están en otra ESCALA), la curva FILMIC exacta de Godot sobre el pase BASE
+(`HORNO_FILMIC`; sin ella perseguir la diferencia con ambiente lava el contraste
+sin llegar: el filmic con blanco 1 levanta 0,5 → 0,69), y defaults
+`HORNO_SOL=1.6` / `HORNO_AMBIENTE=0.65` (1,6 y no 1,0: el sol del sprite es
+axial y el del cliente rasante). Los valores por bicho están en la tabla del
+README de arte. Para un **metal** el ambiente ahora va al revés: con el fondo ya
+del color real la Phoenix refleja de sobra y baja a 0,35 — en Godot el metal ni
+ve el ambiente de color (no hay mapa de reflexión) y en Blender sí. **Recalibra
+la pareja cada vez que cambie la luz del mundo, el modelo o la textura**, y
+homologar sigue siendo parecerse al modelo en alta, no al PNG que hubiera antes.
 
 **Si el crudo viene por encima de presupuesto, decima.** El Vex llegó a 31 148 tris
 y bajó a 12 000: está medido que 10k → 31k cuesta un 38 % de fps. El soldado va
@@ -398,9 +405,10 @@ Todo dial calibrable se documenta en el README de su repo **en el mismo commit**
   1.15` y el viewport a `screen_size * 1.15 * 2`. Con una constante el bicho
   desborda su propia barra de vida.
 - **Sol a 1.0 en Godot**, no al 2.6 del banco: con 2.6 el bicho sale lavado y no se
-  parece a su propio horneado. (Blender hornea con un sol de 3.2, que por cómo
-  normaliza cae cerca de 1.0 aquí — pero el criterio es el parecido con el horneado,
-  no la conversión.)
+  parece a su propio horneado. El resto de la luz del mundo —ambiente 0.65 azul
+  grisáceo y tonemap FILMIC— sale de `AssetDefs.ambiente_mundo`, el dial ÚNICO:
+  nunca montes un `Environment` 3D a mano, ni en una escena de pruebas — estaba
+  copiado en ocho sitios y la homologación mentía según cuál midiera.
 - **Los pesos tienen que sumar 1, y se vigila por ARRIBA también.** Sumar de menos
   aplasta el vértice contra el origen del hueso; sumar de más lo mueve de más. El
   rig normaliza siempre — un guardián que solo mira el mínimo deja pasar la mitad
