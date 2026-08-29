@@ -140,7 +140,17 @@ recorriendo vetas), existe el dial `lava` en el JSON: monta
 material — el ruido corre sobre la **posición local** (los islotes de UV de Meshy
 partirían el flujo) y late en fase con el pulso, que no se toca. El destello 3D
 va al reloj de las **alas**: un bicho sin alas hereda el ciclo del Vexor (2,17 s)
-salvo que su JSON declare `"alas": {"ciclo": N}` — solo el reloj, sin huesos. **No se toca `world.gd`** — el 3D entra por debajo, en
+salvo que su JSON declare `"alas": {"ciclo": N}` — solo el reloj, sin huesos.
+
+Y existe el bloque **`luz`** (`{"sol": N, "ambiente": N}`): la excepción por bicho
+a la luz del mundo, para el que se lee **autoiluminado** (el Skarnox va a un
+cuarto del mundo). Lo honran `entity_node` y `medir_emision` — si añades otro
+rig de medición, tiene que leerlo o comparará contra un alta que no existe. Su
+precio va junto: media se rehornea con `HORNO_SOL`/`HORNO_AMBIENTE` equivalentes
+(sol del horno = sol del bicho × 1,6, por el axial), el halo se recalibra (con
+menos luz exterior el derrame del glow pesa MÁS y la fuerza sube), y el bicho se
+mira al lado de un vecino normal: dos luces distintas pueden leerse como dos
+recortes pegados. **No se toca `world.gd`** — el 3D entra por debajo, en
 un `SubViewport` cuya textura alimenta al `Sprite2D` de siempre, así que posición,
 z-index, radio de click, barras y FX siguen siendo los de 2D.
 
