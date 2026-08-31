@@ -17,15 +17,18 @@ Rutas relativas a `C:\Source\MexOrbit\mex-orbit-v1\`. Blender es
 `"C:/Program Files/Blender Foundation/Blender 5.2/blender.exe"`.
 
 **1. Meshy.** Remesh a ~10-15 k tris **encendido** (sin él da una sopa de cáscaras
-solapadas que el decimador convierte en esquirlas). Modo Ultra **apagado**. Pose de
-la imagen = pose de reposo. Texturas 4096. La tabla completa está en el README de
-arte, sección «LA RECETA».
+solapadas). Modo Ultra **apagado**. Pose de la imagen = pose de reposo. Texturas
+4096. La tabla completa está en el README de arte, sección «LA RECETA». **El
+presupuesto de polígonos se resuelve AQUÍ, no en `normalize-model.py`** (31-ago-2026:
+el decimador salió del script — ver más abajo). Si un crudo llega por encima de
+presupuesto, se reexporta de Meshy con el remesh corregido; `normalize-model.py`
+ya no decima nada.
 
 **2. Crudo → master normalizado** (en `mex-orbit-art`):
 
 ```bash
 blender --background --factory-startup --python tools/normalize-model.py -- \
-    source/3d-models/crudo/<bicho>-vN.glb source/3d-models/<bicho>.glb 0 1024 r 1.0 0.0005
+    source/3d-models/crudo/<bicho>-vN.glb source/3d-models/<bicho>.glb 1024 r 1.0 0.0005
 ```
 
 **El canal es el COLOR de lo que brilla**, y hay seis: `r/g/b` primarios y
@@ -196,9 +199,10 @@ ve el ambiente de color (no hay mapa de reflexión) y en Blender sí. **Recalibr
 la pareja cada vez que cambie la luz del mundo, el modelo o la textura**, y
 homologar sigue siendo parecerse al modelo en alta, no al PNG que hubiera antes.
 
-**Si el crudo viene por encima de presupuesto, decima.** El Vex llegó a 31 148 tris
-y bajó a 12 000: está medido que 10k → 31k cuesta un 38 % de fps. El soldado va
-antes de decimar, y eso es lo que lo hace seguro sobre una malla partida por UV.
+**Si el crudo viene por encima de presupuesto, se reexporta de Meshy con el remesh
+corregido** (31-ago-2026: `normalize-model.py` ya no decima — ver «El remesh vive
+en Meshy» más abajo). Está medido que el presupuesto importa: 10k → 31k tris
+cuesta un 38 % de fps, así que un crudo pasado de tris no se acepta tal cual.
 
 ## Si es una NAVE: los anclajes de motores y cañones
 
@@ -363,6 +367,15 @@ Todo dial calibrable se documenta en el README de su repo **en el mismo commit**
   nodo se queda en su modo por defecto y el render sale pareciendo bueno.
 
 **Los scripts de la cadena**
+- **El remesh vive en Meshy, no en `normalize-model.py` (31-ago-2026).** El script
+  decimaba con un ratio propio (`TRIS`, tercer argumento) después de soldar — una
+  segunda pasada de remesh encima de la que Meshy ya hacía. El usuario pasó a
+  resolver el presupuesto de polígonos en el propio Meshy (bichos Y naves por
+  igual: nunca fue solo cosa de naves), así que la capacidad se quitó ENTERA del
+  script en vez de dejarla apagada con `TRIS=0` — el argumento ya no existe y los
+  que venían después (`lado_textura`, `canal`, `ganancia`, `soldar`) recorrieron
+  una posición. La soldadura de costuras (`SOLDAR`) se queda: no es remesh, es
+  limpieza de las cáscaras solapadas del export crudo, y sigue haciendo falta.
 - **`normalize-model.py` solo sabía tumbar desde Y.** El eje fino puede entrar en
   **X**: entonces imprimía un aviso y **no tumbaba nada**, y como ese aviso convive
   con un «ya venía en el plano» en la línea siguiente, el modelo se daba por bueno
