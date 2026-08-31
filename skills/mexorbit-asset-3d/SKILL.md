@@ -242,6 +242,18 @@ En el Phoenix: la malla daba centros asimétricos y ancho 0,103; el render dio
 −0,233 / −0,094 / +0,090 / +0,229 y ancho 0,135. **Cuando la malla y la imagen
 discrepan, manda la imagen** — el problema es del ojo.
 
+**PERO la imagen tiene que ser la del juego de verdad, y con la cámara 3D
+inclinada la cenital ya no lo es.** La Phoenix v2 trae la popa en **ANILLO** de
+seis campanas: la silueta cenital solo ve la fila de abajo (los pares superiores
+proyectan encima de los inferiores) y con ella se montaron **cuatro llamas en
+fila, flacas** (ancho de silueta 0,134 contra 0,165 real de cada boca) sobre una
+popa de seis. Vistas con el tilt del cliente 3D, cantaban. Para una popa en
+anillo: `tools/medir-campanas.py` (mex-orbit-art) agrupa la banda de popa en el
+plano X-Z y da las seis bocas con su altura, y `marcar-anclajes.py` las acepta
+como `x@z` (la vecindad se acota también en Z, o la boca de arriba coge los
+vértices de la de abajo). La verificación que manda pasa a ser la captura del
+autotest con la cámara inclinada, no el render cenital.
+
 Y **la rebanada no se toma al ras de la popa**: ahí las campanas se tocan de dos en
 dos, que era literalmente el síntoma («veo dos motores en una nave de cuatro»). Hay
 que subir hasta la primera fila donde salgan separadas.
