@@ -1,15 +1,18 @@
 ---
 name: mexorbit-asset-3d
-description: Pipeline de un asset 3D de MexOrbit, de Meshy al juego, en las tres calidades (alta = malla en SubViewport, media y baja = PNG horneados del MISMO modelo). Invocar antes de montar desde un modelo 3D cualquier bicho, nave o PROP del mapa (estacion, portal, caja), y antes de tocar normalize-model.py, riguear-modelo.py, hornear-sprite.py, el camino 3D de entity_node.gd o el de la estacion en world.gd. Cubre tambien la emision por canal, los rig radiales y por que un prop no se tumba como un bicho.
+description: Pipeline de un asset 3D de MexOrbit, de Meshy al juego. La malla GLB es el UNICO cuerpo de cada entidad, en los tres niveles de calidad (desde el 1-sep-2026 no hay PNG horneado ni atlas). Invocar antes de montar desde un modelo 3D cualquier bicho, nave o PROP del mapa (estacion, portal, caja), y antes de tocar normalize-model.py, riguear-modelo.py, marcar-anclajes.py, el camino 3D de entity_node.gd, portal_node.gd o el de la estacion/caja en world.gd. Cubre tambien la emision por canal, los rig radiales y por que un prop no se tumba como un bicho.
 ---
 
 # Skill: montar un asset 3D de MexOrbit
 
-**Un asset, dos salidas.** El GLB es la fuente y sirve la calidad **alta**; media y
-baja se **hornean desde el mismo GLB**. No son dos catálogos. Si algo no cuadra
-entre calidades, se mueve la **salida derivada** (el PNG), nunca el modelo: el PNG
-se rehornea cada vez que toques el modelo y un ajuste hecho del otro lado se pierde
-solo.
+**Un asset, UNA salida.** El GLB es la fuente y es el cuerpo de la entidad en los tres
+niveles de calidad; la calidad ya no cambia *qué* es una nave, cambia cuánto cuesta
+dibujarla (resolución del render, antialias, luces, partículas — ver «Calidad gráfica»
+en el README del cliente). Hasta el 1-sep-2026 media y baja eran PNG horneados del
+mismo modelo: eso murió, con su horno, sus atlas de vídeo y su homologación.
+**Una entidad sin `modelo` en su JSON no se dibuja** — existe (HUD, click, combate)
+pero no tiene cuerpo. No hay respaldo, a propósito: un respaldo que nadie mira es la
+forma de que una especie se quede sin malla para siempre.
 
 ## La cadena, en orden
 
@@ -42,14 +45,10 @@ Pedirlo por primario **no da error**: da un modelo que no brilla, y eso solo se
 descubre mirándolo en el juego. Antes de elegir canal, mira de qué color es lo que
 tiene que encenderse.
 
-**La GANANCIA es la palanca del COLOR, y arrastra al horno.** Si el bicho pide
-más intensidad de la que el albedo da (la lava del Skarnox: grietas a 0,4 que ni
-el pulso ni el glow levantaban a «naranja intenso»), la palanca es la ganancia
-del normalizador (el Skarnox va a **2,0**) — no subir el pulso a lo loco ni
-inventar diales aguas abajo. Y doblar la fuente **descalibra el halo horneado**:
-la fuerza del Skarnox tuvo que bajar de 4,2 a 2,0 para que media volviera a
-homologar. El halo pertenece a la pareja modelo+emisiva, como `HORNO_AMBIENTE`
-pertenece a la pareja modelo+textura.
+**La GANANCIA es la palanca del COLOR.** Si el bicho pide más intensidad de la que
+el albedo da (la lava del Skarnox: grietas a 0,4 que ni el pulso ni el glow
+levantaban a «naranja intenso»), la palanca es la ganancia del normalizador (el
+Skarnox va a **2,0**) — no subir el pulso a lo loco ni inventar diales aguas abajo.
 
 **Y la cifra de cobertura sola no dice nada, en NINGUNA dirección.** La trampa de
 la estación es cobertura alta que sí era veneno (el azul dominaba el 92 % porque
@@ -60,7 +59,7 @@ resultante ~0,02) y los acentos reales, ojos y vetas con albedo 0,72/0,19/0,21,
 son el 5,4 % por encima de 0,35 con p99 de 0,62. Ni el pánico ni la confianza se
 sacan del porcentaje: antes de cambiar canal o ganancia, mide p50/p99 de la
 máscara y el albedo de donde pega alto contra donde pega bajo. Un minuto de
-numpy ahorra un rehorneado a ciegas.
+numpy ahorra una vuelta a ciegas.
 
 **3. Master → asset de juego con esqueleto:**
 
@@ -118,44 +117,32 @@ Hasta que se alinee el contrato, ese rechazo se ignora; lo que NO se hace es
 «arreglar» el asset bajándolo a 512, que es la reacción natural al mensaje. El
 resto de rechazos sí mandan.
 
-**5. Hornear media y baja** — los tres PNG que el cliente ya consume:
-
-```bash
-blender --background --factory-startup --python tools/hornear-sprite.py -- \
-    source/3d-models/<bicho>.glb exports/horno <bicho> 512
-```
-
-Tres pases, no uno: **BASE** (emisión apagada, o iría dos veces), **EMISIVA** (con
-el halo horneado) y **NORMAL** (datos, sin gestión de color). Copiar los tres a
-`<cliente>/assets/npcs/` y **reimportar** (`godot --headless --path . --import`):
-sin eso Godot sirve la textura vieja de la caché y parece que el cambio no hizo nada.
-
-**6. Enchufarlo al cliente.** En `data/npcs/<bicho>.json`:
+**5. Enchufarlo al cliente.** En `data/npcs/<bicho>.json` (o `data/props/<prop>.json`,
+`data/ships/<nave>.json`):
 
 ```json
 "modelo": "res://assets/npcs/<bicho>.glb",
 ```
 
-Y ya está: `entity_node._construir_visual()` toma el camino 3D cuando
-`Quality.nivel("npc") >= 2`. Si el bicho pide **emisión que VIAJA** (lava, energía
-recorriendo vetas), existe el dial `lava` en el JSON: monta
+Y ya está: `entity_node._construir_visual()` monta la malla en todos los niveles;
+la estación, la caja y el portal hacen lo mismo desde `world.gd` / `portal_node.gd`
+(escalados a `world_size` por su huella). Si el bicho pide **emisión que VIAJA**
+(lava, energía recorriendo vetas), existe el dial `lava` en el JSON: monta
 `game/shaders/lava_flujo.gdshader` como `next_pass` aditivo sobre la copia del
 material — el ruido corre sobre la **posición local** (los islotes de UV de Meshy
 partirían el flujo) y late en fase con el pulso, que no se toca. El destello 3D
 va al reloj de las **alas**: un bicho sin alas hereda el ciclo del Vexor (2,17 s)
-salvo que su JSON declare `"alas": {"ciclo": N}` — solo el reloj, sin huesos.
+salvo que su JSON declare `"alas": {"ciclo": N}` — solo el reloj, sin huesos. Con
+`emissive` a 0 (solo por auto-calidad) el pulso se congela y la lava no se monta.
 
 Y existe el bloque **`luz`** (`{"sol": N, "ambiente": N}`): la excepción por bicho
 a la luz del mundo, para el que se lee **autoiluminado** (el Skarnox va a un
-cuarto del mundo). Lo honran `entity_node` y `medir_emision` — si añades otro
-rig de medición, tiene que leerlo o comparará contra un alta que no existe. Su
-precio va junto: media se rehornea con `HORNO_SOL`/`HORNO_AMBIENTE` equivalentes
-(sol del horno = sol del bicho × 1,6, por el axial), el halo se recalibra (con
-menos luz exterior el derrame del glow pesa MÁS y la fuerza sube), y el bicho se
-mira al lado de un vecino normal: dos luces distintas pueden leerse como dos
-recortes pegados. **No se toca `world.gd`** — el 3D entra por debajo, en
-un `SubViewport` cuya textura alimenta al `Sprite2D` de siempre, así que posición,
-z-index, radio de click, barras y FX siguen siendo los de 2D.
+cuarto del mundo). El bicho se mira al lado de un vecino normal: dos luces
+distintas pueden leerse como dos recortes pegados.
+
+**Reimportar** después de copiar un GLB o una textura (`godot --headless --path .
+--import`): sin eso Godot sirve el recurso viejo de la caché y parece que el
+cambio no hizo nada.
 
 ## LOS DIALES SON POR BICHO
 
@@ -168,36 +155,15 @@ revés que el Vexor) y emite en un solo ojo en vez de en toda la superficie.
 | forma | alas + cola | alas + cola | **radial, 8 brazos** |
 | `BISAGRA` / `BANDA` del ala | 0,30 / 0,22 | 0,18 / 0,16 | sin alas (3,0) |
 | `COLA_DESDE` | 0,32 | 0,24 |
-| `GLOW_NUCLEO` | 0,09 | 0,22 |
-| `GLOW_RADIO` / `GLOW_FUERZA` | 0,06 / 1,8 | 0,09 / 3,8 |
-| `HORNO_SOL` / `HORNO_AMBIENTE` | 1,35 / 0,65 | 1,0 / 0,45 (la Phoenix, **1,6 / 0,35**) |
 | `cuernos_grados` / `cuernos_eje` | [−14, +14] / eje 1 | [−20, 0] / **eje 2** |
 
 **Las bisagras salen del perfil de la malla**, no de copiar el bicho anterior: saca
 el ancho (`|X|` p95) por bandas de Y y busca el salto. En el Vex pasa de 0,101 a
 0,749 entre Y −0,599 y −0,479 — ahí empiezan las alas y ahí acaba la cola.
 
-**Los `GLOW_*` se barren contra `medir_emision.tscn`** hasta que media iguale a
-alta. Cuál es la palanca depende del bicho: en el Vexor era el núcleo; en el Vex,
-que emite en un punto, subirlo de 0,09 a 0,22 solo movió la media de 0,201 a 0,205
-y hubo que ir al halo.
-
-**La luz del horno ESPEJA la del cliente desde el cambio de luz del mundo
-(ago-2026).** El mundo 3D pasó de ambiente 0,28 lineal a **0,65 con tonemap
-FILMIC**, en UN dial: `AssetDefs.ambiente_mundo` — antes estaba copiado a mano en
-ocho sitios y subirlo exigía acertar ocho ediciones. El horno lo replica: fondo
-del color del ambiente (antes el nodo Background se quedaba en el gris 0,05 por
-defecto de Blender y la fuerza multiplicaba casi-nada — los valores de la era
-vieja están en otra ESCALA), la curva FILMIC exacta de Godot sobre el pase BASE
-(`HORNO_FILMIC`; sin ella perseguir la diferencia con ambiente lava el contraste
-sin llegar: el filmic con blanco 1 levanta 0,5 → 0,69), y defaults
-`HORNO_SOL=1.6` / `HORNO_AMBIENTE=0.65` (1,6 y no 1,0: el sol del sprite es
-axial y el del cliente rasante). Los valores por bicho están en la tabla del
-README de arte. Para un **metal** el ambiente ahora va al revés: con el fondo ya
-del color real la Phoenix refleja de sobra y baja a 0,35 — en Godot el metal ni
-ve el ambiente de color (no hay mapa de reflexión) y en Blender sí. **Recalibra
-la pareja cada vez que cambie la luz del mundo, el modelo o la textura**, y
-homologar sigue siendo parecerse al modelo en alta, no al PNG que hubiera antes.
+**La luz del mundo vive en UN dial**: `AssetDefs.ambiente_mundo` + `AssetDefs.sol_mundo`
+(antes estaba copiada a mano en ocho sitios y subirla exigía acertar ocho ediciones).
+Nunca montes un `Environment` 3D a mano, ni en una escena de pruebas.
 
 **Si el crudo viene por encima de presupuesto, se reexporta de Meshy con el remesh
 corregido** (31-ago-2026: `normalize-model.py` ya no decima — ver «El remesh vive
@@ -206,10 +172,8 @@ cuesta un 38 % de fps, así que un crudo pasado de tris no se acepta tal cual.
 
 ## Si es una NAVE: los anclajes de motores y cañones
 
-Una nave necesita dos cosas que un bicho no. En 2D las llamas y las bocas de cañón
-cuelgan del **sprite** y giran con él; en 3D el sprite **ya no gira** —gira el
-modelo dentro del viewport— así que unas coordenadas de textura se quedarían
-clavadas en pantalla mientras la nave da la vuelta.
+Una nave necesita dos cosas que un bicho no: de dónde sale cada llama y por dónde
+dispara cada cañón, en el espacio del modelo que gira.
 
 **Paso extra en la cadena, entre normalizar y enchufar:**
 
@@ -222,9 +186,8 @@ blender --background --factory-startup --python tools/marcar-anclajes.py -- \
 Mete en el GLB nodos vacíos `tobera_1..N` y `canon_izq`/`canon_der` en **unidades
 del modelo**, con el **ancho de cada boca en la escala del nodo** (un sitio estándar
 de glTF, sobrevive al importador). `validar-modelo.py` los lista en MARCADORES.
-
-En el cliente los lleva `_anclas`, un `Node2D` que hace el papel que hacía el
-sprite: carga la rotación del rumbo y de él cuelgan llamas y bocas.
+En el cliente los lee `_montar_anclajes`: las llamas (GPUParticles3D, el thruster
+del original) y las bocas cuelgan del cuerpo que gira.
 
 ### Mide las bocas en el RENDER, no en la malla
 
@@ -262,42 +225,33 @@ Y **la rebanada no se toma al ras de la popa**: ahí las campanas se tocan de do
 dos, que era literalmente el síntoma («veo dos motores en una nave de cuatro»). Hay
 que subir hasta la primera fila donde salgan separadas.
 
-### El tamaño de la llama: tres trampas encadenadas
+### La llama: lo que quedó de tres trampas
 
-Las tres daban el mismo síntoma —llamas demasiado gruesas— y las dos primeras
-hicieron que los arreglos siguientes **no cambiaran nada en pantalla**:
-
-1. **`_process` PISA la escala de la llama** cada fotograma con el ciclo de empuje.
-   Fijarla al crearla no sirve de nada: dura un frame. Tiene que **multiplicar**.
-   En 2D no se nota porque el sprite padre aporta el factor; en 3D `_anclas` no
-   tiene escala y la llama sale a 64 px de textura.
-2. **El penacho ocupa solo el 70 % del ancho de su textura** (columnas 10..54 de
-   64). Escalar la textura al ancho de la boca deja el chorro visible en un 70 % y
-   no la cubre.
-3. **La llama se dimensiona por el ancho de SU boca, no por la separación entre
-   bocas.** Con la separación sale más gruesa que la tobera de la que sale.
-
-Y se mete **medio ancho hacia proa**: el marcador está en el vértice más trasero,
-que es el filo de la campana y no su garganta, así que la llama arrancaba despegada.
+Las llamas son partículas (el `thruster.awp` del original) y su tamaño va en la
+escala del nodo, que `_process` **multiplica** por el empuje cada fotograma —
+fijarla al crearla dura un frame. Se dimensiona por el ancho de **su** boca, no por
+la separación entre bocas. Y el disco de emisión va **en el filo** del marcador:
+el medio ancho hacia proa era del quad viejo.
 
 ### Lo demás
 
 - **Pasa el número de toberas.** Contarlas por valles dio 2 en vez de 4.
 - **De la tobera, su punto más trasero; del cañón, su punta delantera.** No el
   centro de masa: la llama sale de la boca y un cañón es un tubo.
-- **Los `engines`/`cannons` del JSON dejan de valer**, están en píxeles del PNG
-  viejo. Ojo al orden: en `setup()` el bucle de `cannons` corre **después** de
-  `_construir_visual`, así que sin condición se **suman** a las medidas.
+- **Los `cannons` del JSON son solo el respaldo** de un modelo sin marcadores; los
+  `engines` del JSON murieron con el quad. Ojo al orden: en `setup()` el bucle de
+  `cannons` corre **después** de `_construir_visual`, y solo si el modelo no trajo
+  los suyos.
 
-## Si es una ESTACIÓN (o cualquier prop que no sea un bicho)
+## Si es una ESTACIÓN, un PORTAL o una CAJA (props)
 
-Un bicho es un objeto **plano visto desde arriba**, hay muchos a la vez y vive en `EntityNode`. Una
-estación rompe las tres cosas, y cada una cambia un dial de la cadena.
+Un bicho es un objeto **plano visto desde arriba**, hay muchos a la vez y vive en `EntityNode`. Un
+prop rompe alguna de esas cosas, y cada una cambia un dial de la cadena.
 
-**No se tumba.** `TUMBAR=0`. El contrato del normalizador —el eje fino acaba en el alto— *codifica*
-«plano visto desde arriba». Una estación es una **torre vertical**: tumbarla la acuesta. No hay
-heurística que distinga los dos casos mirando la caja, porque la diferencia no está en el modelo sino
-en cómo se mira.
+**Una estación no se tumba.** `TUMBAR=0`. El contrato del normalizador —el eje fino acaba en el alto—
+*codifica* «plano visto desde arriba». Una estación es una **torre vertical**: tumbarla la acuesta. No
+hay heurística que distinga los dos casos mirando la caja, porque la diferencia no está en el modelo
+sino en cómo se mira.
 
 **No se decima.** Es UNA instancia, no quince Vex. La base entró con 30 228 tris y se quedó con ellos.
 
@@ -306,45 +260,35 @@ máscaras (no la suma: un píxel es del acento que más domine). Y ojo con elegi
 — en la estación el azul dominaba en el **92,2 %** de la textura porque el casco entero es azul-gris,
 así que habría encendido la torre entera. Los acentos reales eran magenta (p99 0,298) y cian (0,153).
 
-**La cámara puede no ser cenital, y eso arrastra el encuadre.** `extension_3d` mide la **huella**
+**La cámara no es cenital, y eso arrastra el encuadre.** `extension_3d` mide la **huella**
 (X y Z), que a 90° es exactamente lo que se ve. En cuanto la cámara baja deja de serlo: la altura pasa
 a proyectarse en pantalla y una torre de 1,92 sobre una planta de 1,05 se sale por arriba. Para
 cámaras oblicuas, `extension_vista` proyecta las ocho esquinas de la caja al espacio de la cámara.
 
-**Y su MEDIA se hornea con el rig del cliente, no con el de los bichos.** El horno
-tiene los diales: `HORNO_ELEVACION=30` (cámara oblicua, encuadre de ocho esquinas)
-y `HORNO_LUZ=mundo` — un prop que NO ROTA no necesita la luz axial, y lo correcto
-es el sol direccional real o media no comparte sombras con alta. El halo se apaga
-si alta lo tiene apagado (`GLOW_FUERZA=0`) y `GLOW_NUCLEO` hace de ganancia para
-cocer el `emision` del modelo en la capa, porque el pulso 2D no lo multiplica.
-Su ambiente bajó a **0,15**: el casco es metálico por textura y en Blender el
-fondo se refleja — la homologación se midió EN EL JUEGO, recortando la estación
-de dos autotest (media contra alta), porque `medir_emision` es de bichos.
+**El tamaño tiene techos que no son el gusto.** En la estación fue su **zona segura** (el server
+manda 1500 de radio, así que a ×4 la base asomaría fuera de su propio anillo y se lee como un error).
 
-**El tamaño tiene techos que no son el gusto.** En la estación fueron dos: su **zona segura** (el
-server manda 1500 de radio, así que a ×4 la base asomaría fuera de su propio anillo y se lee como un
-error) y el **destino de render, que crece con el cuadrado** — a ×3 son 2829 px de lado y 30,5 MB.
+**Portal y caja: hoy no tienen malla y por eso no se dibujan** (1-sep-2026). Cuando la tengan,
+`data/props/<prop>.json` declara `"modelo"` y `world_size`, y `portal_node.gd` / `_crear_caja` la
+montan escalada por su huella, como la estación. El encendido del portal (los 2,1 s que cubren la
+latencia del salto) volverá como animación del GLB; la señal `encendido_terminado` ya está esperando.
 
-## Un prop con TRES caminos: los guardianes por exclusión caducan
+## Un prop con varios caminos: los guardianes por exclusión caducan
 
-La estación tiene PNG fijo, atlas y malla 3D. Su capa emisiva 2D —el reactor de una base anterior—
-se montaba con un guardián que decía «solo si **no** hay atlas». Al aparecer el tercer camino, nadie
-lo actualizó: volvió a montarse sobre el modelo, en blend aditivo, y pintó un aro cian perfecto sobre
-una estructura que no tiene esa forma.
+Cuando la estación tenía PNG fijo, atlas y malla, su capa emisiva 2D —el reactor de una base
+anterior— se montaba con un guardián que decía «solo si **no** hay atlas». Al aparecer el tercer
+camino, nadie lo actualizó: volvió a montarse sobre el modelo, en blend aditivo, y pintó un aro cian
+perfecto sobre una estructura que no tiene esa forma. Se leyó como «el reactor brilla demasiado» y
+se tocó el glow — mientras la causa era **una capa que no debería estar ahí**.
 
-Y engaña dos veces. Se lee como «el reactor brilla demasiado», así que se toca el *glow* y la
-ganancia de emisión —los dos sospechosos razonables— mientras la causa es **una capa que no debería
-estar ahí**. Ese aro ya se había arreglado una vez, con el mismo síntoma.
-
-**Enuncia el guardián por lo que la cosa PERTENECE, no por lo que no es.** «La capa emisiva 2D es del
-PNG fijo» no caduca; «de todo lo que no sea atlas» caduca en cuanto aparece un caso nuevo.
+**Enuncia el guardián por lo que la cosa PERTENECE, no por lo que no es.** Hoy solo queda un
+camino, y es la razón de que se retiraran los otros dos en vez de dejarlos «por si acaso».
 
 ## Fuentes de verdad
 
-- `mex-orbit-art/README.md` — la receta de Meshy, los dos diales (polígonos vs
-  textura) y **los cuatro diales del halo** (`GLOW_NUCLEO/UMBRAL/RADIO/FUERZA`).
-- `mex-orbit-client/pruebas/README.md` — el banco, la trampa del `SubViewport` y la
-  tabla de emisión media-vs-alta.
+- `mex-orbit-art/README.md` — la receta de Meshy y los dos diales (polígonos vs textura).
+- `mex-orbit-client/README.md` — «Calidad gráfica» (qué baja con cada nivel) y «Un solo tipo de asset».
+- `mex-orbit-client/pruebas/README.md` — el banco y la trampa del `SubViewport`.
 
 Todo dial calibrable se documenta en el README de su repo **en el mismo commit**.
 
@@ -356,13 +300,11 @@ Todo dial calibrable se documenta en el README de su repo **en el mismo commit**
   malla** o acumula las transformaciones **a mano** subiendo por los padres.
 - **Las rutas de salida relativas se van a un sitio fantasma.** Blender resuelve un
   `render.filepath` relativo contra su propia ruta base, no contra el directorio de
-  lanzamiento: el script dice que horneó, no da ningún error y los PNG se quedan
-  igual. `hornear-sprite.py` ya fuerza `os.path.abspath`; haz lo mismo en cualquier
-  script nuevo.
+  lanzamiento: el script dice que escribió, no da ningún error y los archivos se
+  quedan igual. Fuerza `os.path.abspath` en cualquier script nuevo.
 - **Blender 5 cambió el compositor**: no hay `scene.node_tree`, es un grupo de nodos
   en `scene.compositing_node_group`, los ajustes del Glare son *entradas* y los
-  valores de menú son texto legible (`"Bloom"`, `"Replace Alpha"`). Para un bloom
-  sale más barato numpy sobre el PNG ya rendido.
+  valores de menú son texto legible (`"Bloom"`, `"Replace Alpha"`).
 - **Nunca metas un ajuste en `try/except`.** Un valor mal escrito se traga solo, el
   nodo se queda en su modo por defecto y el render sale pareciendo bueno.
 
@@ -437,34 +379,21 @@ Todo dial calibrable se documenta en el README de su repo **en el mismo commit**
   El síntoma es lo peligroso: **un bicho quieto se ve exactamente igual que uno
   bien animado con amplitud pequeña**, y en un bicho radial la pose de reposo
   tampoco delata nada. Se dio el retrato por bueno mirando un fotograma.
-- **`own_world_3d = true` en el `SubViewport`, obligatorio.** Sin él los viewports
-  comparten el `World3D` del padre: todos los modelos viven en el mismo mundo y en
-  el mismo origen, y cada cámara los ve **todos**. Se ve como una bola de copias del
-  bicho que crece según entran más.
-- **El giro es `-deg_to_rad(_visual_angle)`, sin sumandos.** El arte 2D mira arriba
-  y el modelo también a giro 0. Cualquier cuarto de vuelta de más hace que el bicho
-  persiga de costado.
-- **Gira el modelo, no el sprite.** Rotar la imagen ya rendida giraría la luz, que es
-  justo lo que el 3D viene a arreglar.
-- **El encuadre se mide del modelo**, nunca una constante: `cam.size = extensión *
-  1.15` y el viewport a `screen_size * 1.15 * 2`. Con una constante el bicho
-  desborda su propia barra de vida.
-- **Sol a 1.0 en Godot**, no al 2.6 del banco: con 2.6 el bicho sale lavado y no se
-  parece a su propio horneado. El resto de la luz del mundo —ambiente 0.65 azul
-  grisáceo y tonemap FILMIC— sale de `AssetDefs.ambiente_mundo`, el dial ÚNICO:
-  nunca montes un `Environment` 3D a mano, ni en una escena de pruebas — estaba
-  copiado en ocho sitios y la homologación mentía según cuál midiera.
+- **El giro es `-deg_to_rad(_visual_angle)`, sin sumandos.** El modelo mira a −Z a
+  giro 0. Cualquier cuarto de vuelta de más hace que el bicho persiga de costado.
+- **La luz del mundo sale de `AssetDefs`**, el dial ÚNICO: nunca montes un
+  `Environment` 3D a mano, ni en una escena de pruebas — estaba copiado en ocho
+  sitios y cada rig medía contra una luz distinta.
 - **Los pesos tienen que sumar 1, y se vigila por ARRIBA también.** Sumar de menos
   aplasta el vértice contra el origen del hueso; sumar de más lo mueve de más. El
   rig normaliza siempre — un guardián que solo mira el mínimo deja pasar la mitad
   de los casos, y así llevaba un 1,416 sin que nadie lo viera.
-- **Alta necesita `glow_enabled`** o la emisión se recorta a 1.0 y se lee como
-  «claro» en vez de «encendido». Y media necesita el **halo horneado** para tener el
-  mismo carácter: sin él tiene el mismo brillo medio pero manchones planos reventados.
+- **La emisión necesita `glow_enabled`** o se recorta a 1.0 y se lee como «claro» en
+  vez de «encendido».
 
 ## Cómo se verifica
 
-En `mex-orbit-client/pruebas/` hay tres escenas que son herramientas, no adornos.
+En `mex-orbit-client/pruebas/` hay escenas que son herramientas, no adornos.
 **Se corren CON VENTANA, nunca con `--headless`**: headless monta el renderer
 dummy, que no puede volcar texturas — la escena arranca, lista los huesos como si
 todo fuera bien y luego escupe `Parameter "t" is null` y `save_png on a null
@@ -477,7 +406,6 @@ renderizar. Todas estas escenas abren su ventana un momento y salen solas.
 | `repro_viewport.tscn` | monta **seis** viewports y vuelca el primero a 0,5 s y 9 s. Con uno solo el fallo del mundo compartido no aparece. |
 | `repro_eje_hueso.tscn` | renderiza un hueso girado en X, Y y Z **más el reposo al lado**. **El eje de un gesto nuevo se elige mirando**, no deduciéndolo de la permutación de ejes. `-- --modelo=npcs/vorax.glb --hueso=brazo_1 --grados=35`, y con `--solo-eje=N` escribe `..._gNN.png` (nombre distinto: ojo al recoger la salida) |
 | `ver_anclajes.tscn` | pinta los marcadores sobre el render **y mide las bocas en la silueta**. Para naves es la herramienta, no un extra: la malla no sabe distinguir una campana de la tubería que tiene al lado. |
-| `medir_emision.tscn` | compone media a mano y la compara con alta, recortando a 1 en los dos lados. Guarda también la composición en PNG. |
 
 **Una herramienta de verificación puede mentir, y estas ya lo hicieron.**
 `repro_eje_hueso` prefijaba `npcs/` siempre, así que `--modelo=npcs/vorax.glb` daba
@@ -491,8 +419,7 @@ render vacío que se anuncia como bueno es peor que un error**, porque se analiz
 como si fuera un resultado.
 
 Y `banco_3d.tscn` mide rendimiento — **ojo: sus cifras son N modelos en UN mundo con
-UNA cámara, no la técnica de un viewport por entidad, que es más cara y sigue sin
-medirse.**
+UNA cámara**, que es exactamente la escena única del cliente de hoy.
 
 ## Verificar que algo se MUEVE
 
@@ -517,19 +444,17 @@ el número no diría nada del bicho.
 
 Se **reporta y no falla** todavía, porque el umbral bueno para las nueve especies
 no está medido — un 0,034 puede ser legítimo. Lo que no puede volver a pasar es
-que un bicho se quede congelado y nadie se entere.
+que un bicho se quede congelado y nadie se entere. **Y desde el 1-sep una especie
+sin GLB no tiene cuerpo**: su MOVIMIENTO es el del fondo dentro de la caja (polvo
+estelar, ~0,03–0,05 medido con Gravit, Gravon, Mordax y Skarn), no el del bicho.
+Eso no es un bicho congelado, es un bicho pendiente de malla.
 
-**El bestiario corre en la calidad que la sesión traiga guardada — para verificar
-el camino 3D, SIEMPRE `-Calidad alta`.** Sin el flag puede estar retratando
-MEDIA, y media se parece a alta *a propósito* (para eso se homologa), así que el
-ojo no lo delata: se pasaron tres corridas «verificando» un shader de alta que
-ninguna captura había ejecutado. Las señales que sí delatan: las capturas de alta
-llevan sufijo `-alta` en el nombre, y las cifras de MOVIMIENTO cambian en bloque
-entre calidades — cifras idénticas al milésimo entre dos corridas con un asset
-cambiado significan que retrataron el mismo camino, no que el cambio no hizo
-nada. Y las cifras de MOVIMIENTO **no son comparables entre corridas de calidad
-distinta**; para un antes/después fiable, mide la diferencia tú mismo sobre el
-par de capturas frescas (comprueba su mtime), recortando la caja del bicho.
+**El bestiario corre en la calidad que la sesión traiga guardada.** Ya no hay un
+camino distinto por nivel (la malla es la misma en los tres), pero las cifras de
+MOVIMIENTO sí cambian con la resolución del render (`render` 0,5× en BAJA
+difumina la diferencia entre fotogramas): para un antes/después fiable, misma
+calidad en las dos corridas —`-Calidad alta`— y mide sobre capturas frescas
+(comprueba su mtime), recortando la caja del bicho.
 
 ## Añadir una parte móvil nueva (cuernos, tentáculos)
 
@@ -576,9 +501,6 @@ El orden que funcionó, y ninguno de los pasos sobra:
 método. Aquí se dijo que no y era falso: se había probado con el eje equivocado.
 Antes de descartar una pieza, prueba **los tres ejes** a tamaño de juego.
 
-Media **no se rehornea** si la pose de reposo no cambia: se queda con la parte
-quieta, igual que ya hace con alas y cola.
-
 ## La disciplina
 
 1. **Si no puedes medir que algo cambió, no cambió.** Cuatro renders salieron
@@ -602,10 +524,8 @@ quieta, igual que ya hace con alas y cola.
    que pasó, la causa no estaba en el script sino en el `cp` que recogía la
    salida: con `--solo-eje` la escena escribe `..._gNN.png`, y se estaba copiando
    tres veces el fichero de una corrida anterior. **Comprueba la marca de tiempo
-   del archivo del que sacas el número.** Los diales del
-   horno se definieron después de las líneas que los usan; el script petaba, el
-   barrido mandaba la salida a `/dev/null` y el `cp` copiaba los PNG de la pasada
-   anterior. Nunca escondas la salida de un paso que estás calibrando.
+   del archivo del que sacas el número.** Nunca escondas la salida de un paso que
+   estás calibrando.
 8. **Un log limpio no es una prueba** si no confirmaste que la ejecución llegó al
    sitio del fallo. Ver la sección del autotest.
 9. **Ante algo que sobra en la imagen, pregunta DE DÓNDE SALE antes de cómo
@@ -617,9 +537,10 @@ quieta, igual que ya hace con alas y cola.
    campos, ficha y documentación. No la dejes apagada desde el JSON. Código que no
    se ejecuta no avisa de que está ahí, y en esta cadena ya ha mordido dos veces —
    los huesos de ala en un gusano y la capa emisiva de una estación anterior. El
-   "por si acaso" vive mejor en el historial de git que en el árbol de trabajo.
-11. **Compara contra el horneado, no contra el banco.** El banco tiene sus propios
-   valores y no es la referencia de aspecto.
+   "por si acaso" vive mejor en el historial de git que en el árbol de trabajo. El
+   1-sep-2026 se aplicó a lo grande: el PNG horneado, el atlas de vídeo y su horno
+   salieron enteros, y seis entidades quedaron sin cuerpo antes que con un respaldo
+   que nadie iba a mirar.
 
 ## Si algo falla DESPUÉS del login, usa el autotest
 
