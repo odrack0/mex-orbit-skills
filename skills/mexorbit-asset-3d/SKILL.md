@@ -32,7 +32,10 @@ hornea. `tools/hornear-normales.py <alto.glb> <bajo.glb> <salida.glb>` (mex-orbi
 relieve del crudo de 100 k como normal map sobre su remesh de 12–15 k (mismo generado, mismo
 espacio) en ~2 s, y la salida entra en la cadena como crudo. Medido con el Skarn (104 k → 12 k): en
 el retrato del bestiario no se distingue. Juzga siempre al tamaño de juego (124–248 px), nunca en
-el visor de Meshy a pantalla completa; los 100 k se guardan en `crudo/` como fuente del bake.
+el visor de Meshy a pantalla completa. En Meshy: generar SIN textura (sale el alto de 1,5–3 M) →
+remesh a 12–15 k → texturizar solo el remesh. El alto va a `source/3d-models/crudo/alto/<bicho>.glb`
+y el remesh texturizado a `source/3d-models/crudo/<bicho>.glb`; ninguno se versiona (`crudo/` está
+en el .gitignore), el master normalizado sí.
 
 **2. Crudo → master normalizado** (en `mex-orbit-art`):
 
