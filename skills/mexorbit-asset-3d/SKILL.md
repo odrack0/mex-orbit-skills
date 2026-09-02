@@ -50,6 +50,12 @@ el albedo da (la lava del Skarnox: grietas a 0,4 que ni el pulso ni el glow
 levantaban a «naranja intenso»), la palanca es la ganancia del normalizador (el
 Skarnox va a **2,0**) — no subir el pulso a lo loco ni inventar diales aguas abajo.
 
+**`UMBRAL` (variable de entorno del normalizador) es para el cuerpo que ES del color de su
+acento.** El Mordax es rojo oscuro con venas rojo vivo: con la máscara a secas emitía el
+99,9 % (p50 0,18, cinco veces el marfil del Ferox) — la trampa de la estación sin un segundo
+color al que huir. `UMBRAL=0.3` deja solo lo que domina por encima de 0,3, reescalado a 0..1:
+quedaron las venas (9,5 %). 0 = sin umbral, como siempre.
+
 **Y la cifra de cobertura sola no dice nada, en NINGUNA dirección.** La trampa de
 la estación es cobertura alta que sí era veneno (el azul dominaba el 92 % porque
 el casco entero es azul-gris). El Ferox fue lo contrario: «80,6 % de la textura
@@ -156,6 +162,11 @@ revés que el Vexor) y emite en un solo ojo en vez de en toda la superficie.
 | `BISAGRA` / `BANDA` del ala | 0,30 / 0,22 | 0,18 / 0,16 | sin alas (3,0) |
 | `COLA_DESDE` | 0,32 | 0,24 |
 | `cuernos_grados` / `cuernos_eje` | [−14, +14] / eje 1 | [−20, 0] / **eje 2** |
+
+Ferox: alas 0,24/0,14, cola 0,28, sin cuernos. Gravit, Gravon, Mordax y Skarn (1-sep) van **sin
+esqueleto**: discos y bolas con perfil liso, sin lóbulos que riguear; su vida es el pulso. La
+tabla completa del catálogo, con canal, umbral, triángulos y tumbado por especie, está en el README
+de arte («El catálogo entero por la cadena solo-malla»).
 
 **Las bisagras salen del perfil de la malla**, no de copiar el bicho anterior: saca
 el ancho (`|X|` p95) por bandas de Y y busca el salto. En el Vex pasa de 0,101 a
@@ -268,10 +279,11 @@ cámaras oblicuas, `extension_vista` proyecta las ocho esquinas de la caja al es
 **El tamaño tiene techos que no son el gusto.** En la estación fue su **zona segura** (el server
 manda 1500 de radio, así que a ×4 la base asomaría fuera de su propio anillo y se lee como un error).
 
-**Portal y caja: hoy no tienen malla y por eso no se dibujan** (1-sep-2026). Cuando la tengan,
-`data/props/<prop>.json` declara `"modelo"` y `world_size`, y `portal_node.gd` / `_crear_caja` la
-montan escalada por su huella, como la estación. El encendido del portal (los 2,1 s que cubren la
-latencia del salto) volverá como animación del GLB; la señal `encendido_terminado` ya está esperando.
+**Portal y caja tienen malla desde la tarde del 1-sep-2026** (canal `c` el portal, `y` —ámbar— la
+caja): `data/props/<prop>.json` declara `"modelo"` y `world_size`, y `portal_node.gd` / `_crear_caja`
+la montan escalada por su huella, como la estación. El encendido del portal (los 2,1 s que cubren la
+latencia del salto) sigue pendiente como animación del GLB; la señal `encendido_terminado` ya está
+esperando.
 
 ## Un prop con varios caminos: los guardianes por exclusión caducan
 
