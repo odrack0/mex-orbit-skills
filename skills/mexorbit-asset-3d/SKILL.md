@@ -27,6 +27,13 @@ el decimador salió del script — ver más abajo). Si un crudo llega por encima
 presupuesto, se reexporta de Meshy con el remesh corregido; `normalize-model.py`
 ya no decima nada.
 
+**1b. Si el bicho «solo se ve bien» a 100 k: hornear, no aceptar.** Meshy remeshea pero no
+hornea. `tools/hornear-normales.py <alto.glb> <bajo.glb> <salida.glb>` (mex-orbit-art) cuece el
+relieve del crudo de 100 k como normal map sobre su remesh de 12–15 k (mismo generado, mismo
+espacio) en ~2 s, y la salida entra en la cadena como crudo. Medido con el Skarn (104 k → 12 k): en
+el retrato del bestiario no se distingue. Juzga siempre al tamaño de juego (124–248 px), nunca en
+el visor de Meshy a pantalla completa; los 100 k se guardan en `crudo/` como fuente del bake.
+
 **2. Crudo → master normalizado** (en `mex-orbit-art`):
 
 ```bash
