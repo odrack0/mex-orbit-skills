@@ -130,11 +130,11 @@ resto de rechazos sí mandan.
 "modelo": "res://assets/npcs/<bicho>.glb",
 ```
 
-Y ya está: `entity_node._construir_visual()` monta la malla en todos los niveles;
+Y ya está: `entity_node._build_visual()` monta la malla en todos los niveles;
 la estación, la caja y el portal hacen lo mismo desde `world.gd` / `portal_node.gd`
 (escalados a `world_size` por su huella). Si el bicho pide **emisión que VIAJA**
 (lava, energía recorriendo vetas), existe el dial `lava` en el JSON: monta
-`game/shaders/lava_flujo.gdshader` como `next_pass` aditivo sobre la copia del
+`game/shaders/lava_flow.gdshader` como `next_pass` aditivo sobre la copia del
 material — el ruido corre sobre la **posición local** (los islotes de UV de Meshy
 partirían el flujo) y late en fase con el pulso, que no se toca. El destello 3D
 va al reloj de las **alas**: un bicho sin alas hereda el ciclo del Vexor (2,17 s)
@@ -172,7 +172,7 @@ de arte («El catálogo entero por la cadena solo-malla»).
 el ancho (`|X|` p95) por bandas de Y y busca el salto. En el Vex pasa de 0,101 a
 0,749 entre Y −0,599 y −0,479 — ahí empiezan las alas y ahí acaba la cola.
 
-**La luz del mundo vive en UN dial**: `AssetDefs.ambiente_mundo` + `AssetDefs.sol_mundo`
+**La luz del mundo vive en UN dial**: `AssetDefs.world_ambient` + `AssetDefs.world_sun`
 (antes estaba copiada a mano en ocho sitios y subirla exigía acertar ocho ediciones).
 Nunca montes un `Environment` 3D a mano, ni en una escena de pruebas.
 
@@ -208,12 +208,12 @@ mismo saco. Se probaron tres variantes sobre la malla (media del lóbulo, punto
 medio del extremo, convergencia en ventana) y **ninguna** salió simétrica, que es
 la propiedad que una nave tiene de verdad.
 
-`pruebas/ver_anclajes.tscn` renderiza con la **misma proyección del juego**, pinta
+`tests/view_anchors.tscn` renderiza con la **misma proyección del juego**, pinta
 una cruz en cada marcador con una barra de su ancho, **y mide las bocas sobre la
 silueta**. Sus números son los que se le pasan a `marcar-anclajes.py`.
 
 ```bash
-godot --path . res://pruebas/ver_anclajes.tscn -- --modelo=ships/<nave>.glb
+godot --path . res://tests/view_anchors.tscn -- --model=ships/<nave>.glb
 ```
 
 En el Phoenix: la malla daba centros asimétricos y ancho 0,103; el render dio
@@ -251,7 +251,7 @@ el medio ancho hacia proa era del quad viejo.
   centro de masa: la llama sale de la boca y un cañón es un tubo.
 - **Los `cannons` del JSON son solo el respaldo** de un modelo sin marcadores; los
   `engines` del JSON murieron con el quad. Ojo al orden: en `setup()` el bucle de
-  `cannons` corre **después** de `_construir_visual`, y solo si el modelo no trajo
+  `cannons` corre **después** de `_build_visual`, y solo si el modelo no trajo
   los suyos.
 
 ## Si es una ESTACIÓN, un PORTAL o una CAJA (props)
@@ -264,17 +264,17 @@ prop rompe alguna de esas cosas, y cada una cambia un dial de la cadena.
 hay heurística que distinga los dos casos mirando la caja, porque la diferencia no está en el modelo
 sino en cómo se mira.
 
-**No se decima.** Es UNA instancia, no quince Vex. La base entró con 30 228 tris y se quedó con ellos.
+**No se decima.** Es UNA instance, no quince Vex. La base entró con 30 228 tris y se quedó con ellos.
 
 **Puede tener DOS colores de acento.** El canal admite una suma: `c+m` toma el **máximo** de las dos
 máscaras (no la suma: un píxel es del acento que más domine). Y ojo con elegir el canal por cobertura
 — en la estación el azul dominaba en el **92,2 %** de la textura porque el casco entero es azul-gris,
 así que habría encendido la torre entera. Los acentos reales eran magenta (p99 0,298) y cian (0,153).
 
-**La cámara no es cenital, y eso arrastra el encuadre.** `extension_3d` mide la **huella**
+**La cámara no es cenital, y eso arrastra el encuadre.** `extent_3d` mide la **huella**
 (X y Z), que a 90° es exactamente lo que se ve. En cuanto la cámara baja deja de serlo: la altura pasa
 a proyectarse en pantalla y una torre de 1,92 sobre una planta de 1,05 se sale por arriba. Para
-cámaras oblicuas, `extension_vista` proyecta las ocho esquinas de la caja al espacio de la cámara.
+cámaras oblicuas, `view_extent` proyecta las ocho esquinas de la caja al espacio de la cámara.
 
 **El tamaño tiene techos que no son el gusto.** En la estación fue su **zona segura** (el server
 manda 1500 de radio, así que a ×4 la base asomaría fuera de su propio anillo y se lee como un error).
@@ -315,7 +315,7 @@ camino, y es la razón de que se retiraran los otros dos en vez de dejarlos «po
 
 - `mex-orbit-art/README.md` — la receta de Meshy y los dos diales (polígonos vs textura).
 - `mex-orbit-client/README.md` — «Calidad gráfica» (qué baja con cada nivel) y «Un solo tipo de asset».
-- `mex-orbit-client/pruebas/README.md` — el banco y la trampa del `SubViewport`.
+- `mex-orbit-client/tests/README.md` — el banco y la trampa del `SubViewport`.
 
 Todo dial calibrable se documenta en el README de su repo **en el mismo commit**.
 
@@ -420,7 +420,7 @@ Todo dial calibrable se documenta en el README de su repo **en el mismo commit**
 
 ## Cómo se verifica
 
-En `mex-orbit-client/pruebas/` hay escenas que son herramientas, no adornos.
+En `mex-orbit-client/tests/` hay escenas que son herramientas, no adornos.
 **Se corren CON VENTANA, nunca con `--headless`**: headless monta el renderer
 dummy, que no puede volcar texturas — la escena arranca, lista los huesos como si
 todo fuera bien y luego escupe `Parameter "t" is null` y `save_png on a null
@@ -429,13 +429,13 @@ renderizar. Todas estas escenas abren su ventana un momento y salen solas.
 
 | escena | para qué |
 |---|---|
-| `repro_orientacion.tscn` | renderiza el modelo a 0/90/180/270° de giro. **La orientación de un modelo nuevo se comprueba mirando cuatro PNG**, no razonando sobre permutaciones de ejes. |
+| `repro_orientation.tscn` | renderiza el modelo a 0/90/180/270° de giro. **La orientación de un modelo nuevo se comprueba mirando cuatro PNG**, no razonando sobre permutaciones de ejes. |
 | `repro_viewport.tscn` | monta **seis** viewports y vuelca el primero a 0,5 s y 9 s. Con uno solo el fallo del mundo compartido no aparece. |
-| `repro_eje_hueso.tscn` | renderiza un hueso girado en X, Y y Z **más el reposo al lado**. **El eje de un gesto nuevo se elige mirando**, no deduciéndolo de la permutación de ejes. `-- --modelo=npcs/vorax.glb --hueso=brazo_1 --grados=35`, y con `--solo-eje=N` escribe `..._gNN.png` (nombre distinto: ojo al recoger la salida) |
-| `ver_anclajes.tscn` | pinta los marcadores sobre el render **y mide las bocas en la silueta**. Para naves es la herramienta, no un extra: la malla no sabe distinguir una campana de la tubería que tiene al lado. |
+| `repro_bone_axis.tscn` | renderiza un hueso girado en X, Y y Z **más el reposo al lado**. **El eje de un gesto nuevo se elige mirando**, no deduciéndolo de la permutación de ejes. `-- --model=npcs/vorax.glb --bone=brazo_1 --degrees=35`, y con `--only-axis=N` escribe `..._gNN.png` (nombre distinto: ojo al recoger la salida) |
+| `view_anchors.tscn` | pinta los marcadores sobre el render **y mide las bocas en la silueta**. Para naves es la herramienta, no un extra: la malla no sabe distinguir una campana de la tubería que tiene al lado. |
 
 **Una herramienta de verificación puede mentir, y estas ya lo hicieron.**
-`repro_eje_hueso` prefijaba `npcs/` siempre, así que `--modelo=npcs/vorax.glb` daba
+`repro_bone_axis` prefijaba `npcs/` siempre, así que `--model=npcs/vorax.glb` daba
 `assets/npcs/npcs/vorax.glb`: el modelo **no cargaba** y la escena seguía adelante
 guardando **cuatro PNG negros diciendo «guardado»**. Se llegó a diagnosticar mal la
 causa —se culpó al encuadre, que también estaba a constante— antes de mirar la
@@ -445,7 +445,7 @@ Antes de sacar una conclusión de un render, comprueba que hay algo dentro. **Un
 render vacío que se anuncia como bueno es peor que un error**, porque se analiza
 como si fuera un resultado.
 
-Y `banco_3d.tscn` mide rendimiento — **ojo: sus cifras son N modelos en UN mundo con
+Y `bench_3d.tscn` mide rendimiento — **ojo: sus cifras son N modelos en UN mundo con
 UNA cámara**, que es exactamente la escena única del cliente de hoy.
 
 ## Verificar que algo se MUEVE
@@ -497,14 +497,14 @@ El orden que funcionó, y ninguno de los pasos sobra:
 3. **Añade los huesos** en `riguear-modelo.py` con la bisagra **medida** de la malla,
    y cede terreno a los huesos vecinos de forma continua (`w * (1 - w_vecino)`), no
    con un corte: un corte deja una franja pesando en los dos.
-4. **Mide el eje** con `repro_eje_hueso.tscn`, y **prueba la legibilidad con cada
+4. **Mide el eje** con `repro_bone_axis.tscn`, y **prueba la legibilidad con cada
    eje, no solo con el que creas bueno**. No hay eje universal: depende de cómo esté
    plantada la pieza. En el Vexor el 1 gira dentro del plano (`dy ≈ 0`, área
    creciente) y abre las pinzas; en el Vex el 1 casi no las mueve (0,5 px a 35°) y
    el bueno es el 2. Se llegó a descartar los cuernos del Vex por probar la
    legibilidad **con el eje que menos los movía** — la conclusión buena no era «esta
    pieza no se lee» sino «este gesto no se lee en este bicho».
-5. **Renderiza los DOS extremos del recorrido** (`--ambos`, que posa el par en
+5. **Renderiza los DOS extremos del recorrido** (`--both`, que posa el par en
    espejo como el juego). Un extremo puede **cruzar** las piezas: los cuernos del Vex
    están casi juntos en reposo y hacia el positivo las puntas se solapan. Por eso el
    dial del JSON es un **rango con sus dos extremos** (`[-20, 0]`) y no una amplitud
@@ -544,12 +544,12 @@ Antes de descartar una pieza, prueba **los tres ejes** a tamaño de juego.
    `_process` pisando la escala. Se perdieron dos rondas midiendo mejor algo que ya
    estaba bien medido.
 6. **Si llevas tres ajustes a ojo, construye la herramienta que lo mida.**
-   `ver_anclajes.tscn` cerró en un intento lo que tres rondas de tanteo sobre una
+   `view_anchors.tscn` cerró en un intento lo que tres rondas de tanteo sobre una
    nave en movimiento no habían cerrado.
 7. **Dos ajustes distintos que dan la MISMA cifra hasta el último decimal no son
    un dial que no sirve: son un dial que no se está ejecutando.** Y la segunda vez
    que pasó, la causa no estaba en el script sino en el `cp` que recogía la
-   salida: con `--solo-eje` la escena escribe `..._gNN.png`, y se estaba copiando
+   salida: con `--only-axis` la escena escribe `..._gNN.png`, y se estaba copiando
    tres veces el fichero de una corrida anterior. **Comprueba la marca de tiempo
    del archivo del que sacas el número.** Nunca escondas la salida de un paso que
    estás calibrando.

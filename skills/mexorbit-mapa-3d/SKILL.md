@@ -1,6 +1,6 @@
 ---
 name: mexorbit-mapa-3d
-description: Cómo montar el fondo 3D de un mapa al estilo DarkOrbit (display3D) en el cliente Godot — extraer el descriptor del decompilado, convertir coordenadas/rotaciones (espejo z), convertir mallas AWD y texturas ATF, montar planos esféricos, lensFlare, tilemap con máscara, skybox y luz, y calibrar contra el DO vivo. Invocar antes de montar o retocar el fondo de CUALQUIER mapa (props de data/maps/*.json, fondo3d.gd, skybox, luz del mundo, pan de cámara) o de convertir assets del original.
+description: Cómo montar el fondo 3D de un mapa al estilo DarkOrbit (display3D) en el cliente Godot — extraer el descriptor del decompilado, convertir coordenadas/rotaciones (espejo z), convertir mallas AWD y texturas ATF, montar planos esféricos, lensFlare, tilemap con máscara, skybox y luz, y calibrar contra el DO vivo. Invocar antes de montar o retocar el fondo de CUALQUIER mapa (props de data/maps/*.json, backdrop3d.gd, skybox, luz del mundo, pan de cámara) o de convertir assets del original.
 ---
 
 # Skill: montar un mapa 3D estilo DarkOrbit
@@ -23,7 +23,7 @@ el oráculo** (así se calibró el pan: la guía decía 25 y el juego real pedí
 | Máscaras de tiles | `Decompiled\spacemap\graphics\backgroundmasks\<resKey>\images\1_mask.png` |
 | Lentes del flare | `Decompiled\spacemap\graphics\lensflares\lensflare<N>\sprites\DefineSprite_*_lens<i>\1.png` |
 | Parser del display3D (verdad de las fórmulas) | `Decompiled\spacemap\main\scripts\§_-n3Z§\§_-115§.as` |
-| Nuestro montaje | `mex-orbit-client\data\maps\<code>.json` + `game/fondo3d.gd` + `game/mundo3d.gd` |
+| Nuestro montaje | `mex-orbit-client\data\maps\<code>.json` + `game/backdrop3d.gd` + `game/stage3d.gd` |
 | Conversores | `mex-orbit-art\tools\awd2obj.py`, `tools\atf2png.py` |
 
 ## 2. La conversión de coordenadas — el espejo z y sus consecuencias
@@ -69,7 +69,7 @@ altura). Ej. 1-1: XML `(34000, 48000, 26000)` → Godot `(34000, −48000, −26
   `getPixel32 == 0` → celda vacía). Exportar EL ALFA como gris; convertir por
   luminancia deja la máscara vacía y "no salen nebulosas".
 
-## 4. El JSON del mapa (lo que consume fondo3d)
+## 4. El JSON del mapa (lo que consume backdrop3d)
 
 ```jsonc
 "pan_camara": 0,                  // opcional; ver §8
@@ -101,7 +101,7 @@ Claves del original que informan el JSON:
   contra el DO vivo. `background_animation <append>` → `spin` (centro del rango).
 - `tilemap`: `typeID` se resuelve en el registro 191 (`type 2024 =
   clouds-grey`, tileWidth 256…), `maskID` en `<backgroundMask>`; `layer` da la
-  cota; los tiles llevan jitter propio −500..−200 (ya en fondo3d).
+  cota; los tiles llevan jitter propio −500..−200 (ya en backdrop3d).
 - `lensFlare typeID N` → 11 lentes `lens0..lens10` del SWF; la cadena es
   `lente_i = sol_px + i · (−(sol_px − centro)·3/N)`; TODO el flare se oculta si
   el sol proyecta fuera del viewport. **NO** hay oclusión por ventanas del HUD
@@ -128,7 +128,7 @@ de un asteroide). `ALPHA = 1.0` explícito lo fuerza al pase de transparencias.
 Es la del `<light>` del display3D (defaults si el mapa no lo trae): **blanca,
 diffuse 1.0, specular 0.7, tilt 100 / pan 35** (misma fórmula esférica →
 dirección, z espejada), **ambiente 0xFFA5AE a 0.2**. Vive en `AssetDefs`
-(`sol_mundo`/`ambiente_mundo`) y baña TODO por igual. Lecciones: con ambiente
+(`world_sun`/`world_ambient`) y baña TODO por igual. Lecciones: con ambiente
 0.5 los props se ven vivos/despegados; nada de luces extra por capa ni emisión
 por prop para "arreglar" un objeto — si algo se ve mal, la causa es otra
 (normales, oclusión del skybox, textura).
