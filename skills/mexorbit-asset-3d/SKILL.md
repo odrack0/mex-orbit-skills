@@ -288,8 +288,12 @@ un billboard) y **centrado en el plano de vuelo**, no apoyado: la nave se queda 
 tres cuartos y apoyado, la nave colgaba bajo el aro (reportado en vivo). Le pone el balanceo de ±3° y el
 glow de 5 s del original, y su **encendido** (los 2,1 s que cubren la latencia del salto) es luces
 en rampa + giro del aro sobre su eje + un destello del pool — al final queda abierto y emite
-`encendido_terminado`. Una malla de una pieza no tiene «centro» que girar aparte: girar el anillo
-entero sobre su normal se lee como que gira el centro.
+`encendido_terminado`. Lo que gira es **solo el centro** (el vórtice): Meshy entrega una sola
+cáscara, y `tools/partir-centro.py` (mex-orbit-art) la parte en dos objetos, `aro` y `centro`,
+por el radio del centroide de cada triángulo — un corte circular sobre el eje de giro es
+invariante al giro, así que la costura no se ve. **Dónde cortar se mide** con el histograma
+radial de triángulos (el portal: disco fino entre r 0,12 y 0,56, el aro salta ×5 desde 0,56).
+`PortalNode` busca el hijo `centro` y le pone el giro; sin él gira el aro entero, de respaldo.
 
 ## Un prop con varios caminos: los guardianes por exclusión caducan
 
