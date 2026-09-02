@@ -282,8 +282,10 @@ manda 1500 de radio, así que a ×4 la base asomaría fuera de su propio anillo 
 **Portal y caja tienen malla desde la tarde del 1-sep-2026** (canal `c` el portal, `y` —ámbar— la
 caja): `data/props/<prop>.json` declara `"modelo"` y `world_size`, y `portal_node.gd` / `_crear_caja`
 la montan escalada por su huella, como la estación. **El portal va DE PIE** (`TUMBAR=0`, como la
-estación: es el jumpgate vertical del DO 3D, no un disco): el cliente lo gira a tres cuartos
-(`orientacion.pan`), lo apoya en el plano con `AssetDefs.caja_3d`, le pone el balanceo de ±3° y el
+estación: es el jumpgate vertical del DO 3D, no un disco): el cliente lo pone **de cara a la
+cámara** (la normal del aro apunta a la cámara del rig, tilt base + pan del mapa — una pose fija, no
+un billboard) y **centrado en el plano de vuelo**, no apoyado: la nave se queda dentro del aro. A
+tres cuartos y apoyado, la nave colgaba bajo el aro (reportado en vivo). Le pone el balanceo de ±3° y el
 glow de 5 s del original, y su **encendido** (los 2,1 s que cubren la latencia del salto) es luces
 en rampa + giro del aro sobre su eje + un destello del pool — al final queda abierto y emite
 `encendido_terminado`. Una malla de una pieza no tiene «centro» que girar aparte: girar el anillo
