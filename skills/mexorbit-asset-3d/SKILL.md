@@ -281,9 +281,13 @@ manda 1500 de radio, así que a ×4 la base asomaría fuera de su propio anillo 
 
 **Portal y caja tienen malla desde la tarde del 1-sep-2026** (canal `c` el portal, `y` —ámbar— la
 caja): `data/props/<prop>.json` declara `"modelo"` y `world_size`, y `portal_node.gd` / `_crear_caja`
-la montan escalada por su huella, como la estación. El encendido del portal (los 2,1 s que cubren la
-latencia del salto) sigue pendiente como animación del GLB; la señal `encendido_terminado` ya está
-esperando.
+la montan escalada por su huella, como la estación. **El portal va DE PIE** (`TUMBAR=0`, como la
+estación: es el jumpgate vertical del DO 3D, no un disco): el cliente lo gira a tres cuartos
+(`orientacion.pan`), lo apoya en el plano con `AssetDefs.caja_3d`, le pone el balanceo de ±3° y el
+glow de 5 s del original, y su **encendido** (los 2,1 s que cubren la latencia del salto) es luces
+en rampa + giro del aro sobre su eje + un destello del pool — al final queda abierto y emite
+`encendido_terminado`. Una malla de una pieza no tiene «centro» que girar aparte: girar el anillo
+entero sobre su normal se lee como que gira el centro.
 
 ## Un prop con varios caminos: los guardianes por exclusión caducan
 
