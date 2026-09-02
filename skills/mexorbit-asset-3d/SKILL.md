@@ -292,10 +292,13 @@ en rampa + giro del aro sobre su eje + un destello del pool — al final queda a
 entrega un solo objeto, y `tools/partir-centro.py` (mex-orbit-art) lo parte en dos, `aro` y
 `centro`, repartiendo **islas enteras** (al centro las que entran por debajo de un radio). **No
 se cortan triángulos**: la primera versión cortaba por centroide y el borde del aro salió
-dentado, porque el disco entra por debajo del anillo con triángulos largos. **Dónde cortar se
-mide**: histograma radial + alcance de cada isla (el portal: islas del disco hasta r 0,66,
-aro desde 0,56 sin bajar de 0,52 → corte en 0,52). `PortalNode` busca el hijo `centro` y le
-pone el giro y la aparición; sin él gira el aro entero, de respaldo.
+dentado, porque el disco entra por debajo del anillo con triángulos largos. Y las islas solas
+tampoco bastaron: la pared del aro viene FUSIONADA con trozos de disco, y hay astillas del
+remesh. Quedaron cinco criterios (radio, losa del disco medida por percentiles, astillas, firma
+del disco dentro de las islas mixtas, largo del triángulo), cada uno con su medida en el README
+de arte, y `INFORME=1` lista lo que queda del aro por dentro del labio para afinar midiendo, no
+a ojo. `PortalNode` busca el hijo `centro` y le pone el giro y la aparición; sin él gira el aro
+entero, de respaldo.
 
 ## Un prop con varios caminos: los guardianes por exclusión caducan
 
