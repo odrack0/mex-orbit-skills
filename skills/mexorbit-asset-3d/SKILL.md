@@ -111,6 +111,10 @@ blender --background --factory-startup --python tools/riguear-modelo.py -- \
 #   bisagra alta = sin alas · cola 0 = sin cola · cuerno 0 = sin cuernos
 ```
 
+Si los brazos **cuelgan** bajo un disco (ACI-02), añade `RADIAL_Z_DESDE=<borde del disco>
+RADIAL_Z_HASTA=<punta>`: el peso gana una rampa por altura y los picos se miden solo por debajo
+del borde, porque disco y tentáculos comparten radio y ángulo. Las alturas se miden por bandas de z.
+
 Los ángulos **se miden**, no se reparten a 360/N: un modelo generado sale
 asimétrico, y los ocho brazos del Vorax caen en 36, 84, 102, 122, 146, 188, 286 y
 342 grados. Repartirlos habría puesto huesos entre dos brazos. El histograma
