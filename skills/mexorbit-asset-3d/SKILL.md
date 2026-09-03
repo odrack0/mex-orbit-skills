@@ -55,6 +55,11 @@ Pedirlo por primario **no da error**: da un modelo que no brilla, y eso solo se
 descubre mirándolo en el juego. Antes de elegir canal, mira de qué color es lo que
 tiene que encenderse.
 
+**El albedo se apaga donde emite** (`APAGAR`, 1,0 por defecto desde el 2-sep-2026): si el base
+color conserva el acento saturado, el sol lo enciende con la emisión a cero y el pulso no se ve
+(medido: ACI-01 igual de brillante con energía 0,05 y 3,0). Un pulso «que no se nota» se mide con
+dos bestiarios con la emisiva fija en el mínimo y en el máximo, no a ojo.
+
 **La GANANCIA es la palanca del COLOR.** Si el bicho pide más intensidad de la que
 el albedo da (la lava del Skarnox: grietas a 0,4 que ni el pulso ni el glow
 levantaban a «naranja intenso»), la palanca es la ganancia del normalizador (el
