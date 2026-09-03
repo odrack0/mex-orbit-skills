@@ -19,7 +19,12 @@ forma de que una especie se quede sin malla para siempre.
 Rutas relativas a `C:\Source\MexOrbit\mex-orbit-v1\`. Blender es
 `"C:/Program Files/Blender Foundation/Blender 5.2/blender.exe"`.
 
-**1. Meshy.** Remesh a ~10-15 k tris **encendido** (sin él da una sopa de cáscaras
+**Presupuesto de triángulos (2-sep-2026, medido con LOD):** 15 ACI-02 de 58 k dan 102 fps y 15
+Skarn de 10 k dan 103,5 en la iGPU de referencia. Los triángulos ya no son el coste; un bicho de
+formas finas (tentáculos, pinzas) se remeshea a lo que su silueta pida, hasta ~60 k, que es donde
+el validador avisa. Lo que sí cuesta es la VRAM de texturas y la carga.
+
+**1. Meshy.** Remesh **encendido** (10-15 k para bichos redondos; más si la silueta lo pide) (sin él da una sopa de cáscaras
 solapadas). Modo Ultra **apagado**. Pose de la imagen = pose de reposo. Texturas
 4096. La tabla completa está en el README de arte, sección «LA RECETA». **El
 presupuesto de polígonos se resuelve AQUÍ, no en `normalize-model.py`** (31-ago-2026:
