@@ -24,30 +24,41 @@ Skarn de 10 k dan 103,5 en la iGPU de referencia. Los triángulos ya no son el c
 formas finas (tentáculos, pinzas) se remeshea a lo que su silueta pida, hasta ~60 k, que es donde
 el validador avisa. Lo que sí cuesta es la VRAM de texturas y la carga.
 
-**1. Meshy.** Remesh **encendido** (10-15 k para bichos redondos; más si la silueta lo pide) (sin él da una sopa de cáscaras
-solapadas). Modo Ultra **apagado**. Pose de la imagen = pose de reposo. Texturas
-4096. La tabla completa está en el README de arte, sección «LA RECETA». **El
-presupuesto de polígonos se resuelve AQUÍ, no en `normalize-model.py`** (31-ago-2026:
-el decimador salió del script — ver más abajo). Si un crudo llega por encima de
-presupuesto, se reexporta de Meshy con el remesh corregido; `normalize-model.py`
-ya no decima nada.
+**1. Meshy: dos archivos, una textura.** Generar **SIN textura** → el ALTO (1,5–3 M de tris) a
+`source/3d-models/crudo/alto/<bicho>.glb`. Remesh **adaptativo Ultra** (~100–120 k) → texturizarlo
+(una sola vez, con la imagen del concepto) → `source/3d-models/crudo/<bicho>.glb`. Ninguno se
+versiona (`crudo/` está en el .gitignore); el master normalizado sí. Pose de la imagen = pose de
+reposo. **Desde el 3-sep-2026 el remesh NO es la malla del juego: es el lienzo donde Meshy pinta.**
+La malla del juego sale del alto, decimada en Blender. Medido en el ACI-03 con renders a 45°: con
+los mismos triángulos el Decimate del alto conserva juntas, filos y púas que el remesh derrite, y no
+abre agujeros (los huecos del ACI-05 y el del ACI-03 eran del remesh). Y 30 bichos de 150 k dan los
+mismos fps que 30 de 56 k (81,9 contra 81,2): en cenital no hay LOD cerca/lejos, y aun así sale
+gratis. Lo que sigue costando es la VRAM de texturas. No pedir el alto texturizado: se probó y sale
+con franjas dentadas (miles de islas de UV diminutas). Tabla completa en el README de arte, «LA
+RECETA» y «La cadena desde el alto».
 
-**1b. Si el bicho «solo se ve bien» a 100 k: hornear, no aceptar.** Meshy remeshea pero no
-hornea. `tools/hornear-normales.py <alto.glb> <bajo.glb> <salida.glb>` (mex-orbit-art) cuece el
-relieve del crudo de 100 k como normal map sobre su remesh de 12–15 k (mismo generado, mismo
-espacio) en ~2 s, y la salida entra en la cadena como crudo. Medido con el Skarn (104 k → 12 k): en
-el retrato del bestiario no se distingue. Juzga siempre al tamaño de juego (124–248 px), nunca en
-el visor de Meshy a pantalla completa. En Meshy: generar SIN textura (sale el alto de 1,5–3 M) →
-remesh a 12–15 k → texturizar solo el remesh. El alto va a `source/3d-models/crudo/alto/<bicho>.glb`
-y el remesh texturizado a `source/3d-models/crudo/<bicho>.glb`; ninguno se versiona (`crudo/` está
-en el .gitignore), el master normalizado sí.
-
-**2. Crudo → master normalizado** (en `mex-orbit-art`):
+**2. Alto + remesh → master normalizado** (en `mex-orbit-art`), tres comandos:
 
 ```bash
-blender --background --factory-startup --python tools/normalize-model.py -- \
-    source/3d-models/crudo/<bicho>-vN.glb source/3d-models/<bicho>.glb 1024 r 1.0 0.0005
+# alto -> malla del juego (100 k, medido: no es un techo) vestida con la pintura del remesh
+blender --background --factory-startup --python tools/decimar-y-vestir.py -- \
+    source/3d-models/crudo/alto/<bicho>.glb source/3d-models/crudo/<bicho>.glb <tmp>/<bicho>-vestido.glb 100000 2048 0.08
+
+# + relieve del alto como normal map (la malla vestida entra como `bajo`)
+blender --background --factory-startup --python tools/hornear-normales.py -- \
+    source/3d-models/crudo/alto/<bicho>.glb <tmp>/<bicho>-vestido.glb <tmp>/<bicho>-horneado.glb 2048 0.02 0.1
+
+# -> master (canal de emision, ganancia, soldadura, tumbado)
+UMBRAL=0.25 blender --background --factory-startup --python tools/normalize-model.py -- \
+    <tmp>/<bicho>-horneado.glb source/3d-models/<bicho>.glb 1024 c 1.0 0.0005
 ```
+
+`decimar-y-vestir.py` despliega UV automáticas sobre la malla decimada y hornea desde el remesh el
+color base (pase de color del difuso) y el metallic-roughness (EMIT de la imagen). Rechaza una
+textura más de la mitad negra (los dos modelos no comparten espacio o la `distancia` es corta); el
+«pixeles sin color» que imprime incluye el hueco entre islas (~27 % es normal). Tarda ~90 s, casi
+todo en el Decimate. Las especies anteriores al 3-sep siguen con su remesh como malla hasta que se
+rehagan; no hay que rehacerlas de golpe.
 
 **El canal es el COLOR de lo que brilla**, y hay seis: `r/g/b` primarios y
 `c/m/y` secundarios. **Un color secundario no lo ve la dominancia por canal**: la
@@ -139,13 +150,10 @@ py mex-orbit-testing/assets/validar-modelo.py <cliente>/assets/npcs/<bicho>.glb
 
 Comprueba piezas, triángulos, texturas, caja, pivote, emisión, desbalance de luz
 cocida y **esqueleto**. La caja tiene que salir plana (el eje fino es el alto).
-
-**Rechazo conocido que NO es del asset**: el tope de textura del validador (512)
-está desfasado de la receta, que saca el master a 1024 — el Vex y el Vexor, en
-producción y correctos, dan el mismo `RECHAZAR ... el tope es 512` con exit 1.
-Hasta que se alinee el contrato, ese rechazo se ignora; lo que NO se hace es
-«arreglar» el asset bajándolo a 512, que es la reacción natural al mensaje. El
-resto de rechazos sí mandan.
+Desde el 3-sep-2026 el contrato está alineado con la cadena: 120 000 tris (alarma
+contra un alto sin decimar) y texturas de 1024. Ya no hay rechazos «conocidos» que
+ignorar: todo `RECHAZAR` manda, y lo que NO se hace es «arreglar» el asset
+bajándolo para callar al validador.
 
 **5. Enchufarlo al cliente.** En `data/npcs/<bicho>.json` (o `data/props/<prop>.json`,
 `data/ships/<nave>.json`):
