@@ -24,6 +24,15 @@ Skarn de 10 k dan 103,5 en la iGPU de referencia. Los triángulos ya no son el c
 formas finas (tentáculos, pinzas) se remeshea a lo que su silueta pida, hasta ~60 k, que es donde
 el validador avisa. Lo que sí cuesta es la VRAM de texturas y la carga.
 
+**0. ¿Viene PULIDO de Tripo?** (3-sep-2026, noche) Si el modelo llega ya remesheado y texturizado
+a 10–15 k (`source/3d-models/pulido/<bicho>.glb`, fuera de git), la cadena es la CORTA: saltar los
+pasos 1 y 2 e ir directo a `normalize-model.py` (canal de emisión, soldadura, 1024) con **`TUMBAR=0`
+si el cuerpo es casi esférico** (el tumbado automático elegiría un eje al azar; el ACI-01 v4 salió con
+el ojo escondido hasta ponerlo), validar, JSON, bestiario. Sin `crudo/alto/`, sin decimar, sin
+hornear. Esos modelos traen solo color base (nada de metallic-roughness ni normales): el relieve es
+la geometría y el material va con los fijos de `lighting.json`. Mide el canal de emisión antes como
+siempre. Primer caso: ACI-01 v4, 13 686 tris, cian 5,9 %.
+
 **1. Meshy: dos archivos, una textura.** Generar **SIN textura** → el ALTO (1,5–3 M de tris) a
 `source/3d-models/crudo/alto/<bicho>.glb`. Remesh **adaptativo Ultra** (~100–120 k) → texturizarlo
 (una sola vez, con la imagen del concepto) → `source/3d-models/crudo/<bicho>.glb`. Ninguno se
