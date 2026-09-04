@@ -33,6 +33,14 @@ hornear. Esos modelos traen solo color base (nada de metallic-roughness ni norma
 la geometría y el material va con los fijos de `lighting.json`. Mide el canal de emisión antes como
 siempre. Primer caso: ACI-01 v4, 13 686 tris, cian 5,9 %.
 
+**Luces manchadas** (el generador pinta sombra, polvo o metal DENTRO del parche de luz): no se
+retexturiza ni se retoca a mano. `LIMPIAR=3` (limpieza morfológica de la máscara: tapa manchas,
+quita motas; N en píxeles a 1024, nunca más de la mitad del grosor de la franja más fina) y
+`PLANO=1` (emisión de un solo color uniforme, la mediana de lo encendido, o `PLANO=<hex>`). Receta
+completa para un pulido: `TUMBAR=0 UMBRAL=0.25 LIMPIAR=3 PLANO=1`. Medido en el ACI-01: 4,9 % →
+4,4 % de máscara, franjas planas sin degradado, y el albedo apagado también en el borde suave
+(si no, el sol enciende un ribete cian alrededor de cada luz).
+
 **1. Meshy: dos archivos, una textura.** Generar **SIN textura** → el ALTO (1,5–3 M de tris) a
 `source/3d-models/crudo/alto/<bicho>.glb`. Remesh **adaptativo Ultra** (~100–120 k) → texturizarlo
 (una sola vez, con la imagen del concepto) → `source/3d-models/crudo/<bicho>.glb`. Ninguno se
